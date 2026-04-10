@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RuGram - Статусы</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+        .add-story {
+            background: var(--accent);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+        .stories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 16px;
+        }
+        .story-card {
+            text-align: center;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .story-card:hover {
+            transform: scale(1.05);
+        }
+        .story-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+        .story-name {
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .story-time {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+        .story-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: black;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .story-modal img, .story-modal video {
+            max-width: 90%;
+            max-height: 80%;
+            border-radius: 20px;
+        }
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 40px;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="glass header">
+            <button class="back-btn" onclick="window.location.href='chats.html'" style="background:none; border:none; font-size:24px; cursor:pointer;">←</button>
+            <h2>📸 Статусы</h2>
+            <button class="add-story" onclick="addStory()">+ Моя история</button>
+        </div>
+
+        <div class="stories-grid" id="storiesGrid"></div>
+    </div>
+
+    <div id="storyModal" class="story-modal">
+        <span class="close-modal" onclick="closeStory()">&times;</span>
+        <img id="storyImage" style="display:none;">
+        <video id="storyVideo" controls style="display:none;"></video>
+    </div>
+
+    <div class="theme-switch">
+        <button class="theme-btn light" onclick="setTheme('light')"></button>
+        <button class="theme-btn dark" onclick="setTheme('dark')"></button>
+        <button class="theme-btn personal" onclick="setTheme('personal')"></button>
+    </div>
+
+    <script type="module">
+        import RuGram from './main.js'
+        
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme)
+            localStorage.setItem('theme', theme)
+        }
+        
+        async function loadStories() {
+            const stories = await RuGram.loadStories()
+            const grid = document.getElementById('storiesGrid')
+            
+            if (stories.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px;">Нет активных историй</div>'
+                return
+            }
+            
+            grid.innerHTML = stories.map(story => `
+                <div class="story-card glass-card" onclick="viewStory('${story.media_url}', '${story.media_type}')">
+                    <div class="story-avatar">${story.user?.username?.[0] || '👤'}</div>
+                    <div class="story-name">${story.user?.username || 'Пользователь'}</div>
+                    <div class="story-time">${new Date(story.created_at).toLocaleTimeString()}</div>
+                </div>
+            `).join('')
+        }
+        
+        window.addStory = async () => {
+            const input = document.createElement('input')
+            input.type = 'file'
+            input.accept = 'image/*,video/*'
+            input.onchange = async (e) => {
+                const file = e.target.files[0]
+                if (file) {
+                    await RuGram.publishStory(file, '')
+                    await loadStories()
+                }
+            }
+            input.click()
+        }
+        
+        window.viewStory = (url, type) => {
+            const modal = document.getElementById('storyModal')
+            const img = document.getElementById('storyImage')
+            const video = document.getElementById('storyVideo')
+            
+            if (type === 'image') {
+                img.src = url
+                img.style.display = 'block'
+                video.style.display = 'none'
+            } else {
+                video.src = url
+                video.style.display = 'block'
+                img.style.display = 'none'
+            }
+            modal.style.display = 'flex'
+        }
+        
+        window.closeStory = () => {
+            document.getElementById('storyModal').style.display = 'none'
+            document.getElementById('storyVideo').pause()
+        }
+        
+        const savedTheme = localStorage.getItem('theme') || 'light'
+        document.body.setAttribute('data-theme', savedTheme)
+        
+        window.setTheme = setTheme
+        
+        const user = await RuGram.init()
+        if (!user) window.location.href = 'index.html'
+        await loadStories()
+    </script>
+</body>
+</html>

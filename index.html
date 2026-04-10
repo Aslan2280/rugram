@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RuGram - Вход</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 40px 32px;
+            text-align: center;
+        }
+        .logo {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .error-msg {
+            color: #e53e3e;
+            font-size: 14px;
+            margin-top: 12px;
+            display: none;
+        }
+        .register-link {
+            margin-top: 20px;
+            color: var(--text-secondary);
+        }
+        .register-link a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+        <div class="glass login-container">
+            <div class="logo">📱</div>
+            <div class="title">RuGram</div>
+            <div class="subtitle">Защищённый мессенджер</div>
+            
+            <form id="loginForm">
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="email" class="input" placeholder="user@rugram.com" required>
+                </div>
+                <div class="input-group">
+                    <label>Пароль</label>
+                    <input type="password" id="password" class="input" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn" style="width: 100%;">Войти</button>
+                <div class="error-msg" id="errorMsg">Неверный email или пароль</div>
+            </form>
+            
+            <div class="register-link">
+                Нет аккаунта? <a href="register.html">Зарегистрироваться</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="theme-switch">
+        <button class="theme-btn light" onclick="setTheme('light')"></button>
+        <button class="theme-btn dark" onclick="setTheme('dark')"></button>
+        <button class="theme-btn personal" onclick="setTheme('personal')"></button>
+    </div>
+
+    <script type="module">
+        import RuGram from './main.js'
+        
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme)
+            localStorage.setItem('theme', theme)
+            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'))
+            event.target.classList.add('active')
+        }
+        
+        const savedTheme = localStorage.getItem('theme') || 'light'
+        document.body.setAttribute('data-theme', savedTheme)
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault()
+            const email = document.getElementById('email').value
+            const password = document.getElementById('password').value
+            
+            try {
+                await RuGram.login(email, password)
+                window.location.href = 'chats.html'
+            } catch (err) {
+                document.getElementById('errorMsg').style.display = 'block'
+            }
+        })
+        
+        window.setTheme = setTheme
+    </script>
+</body>
+</html>

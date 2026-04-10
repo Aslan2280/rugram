@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RuGram - Подарки</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+        .balance {
+            background: #ffd700;
+            color: #7c5c00;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-weight: bold;
+        }
+        .gift-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+        }
+        .gift-card {
+            text-align: center;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .gift-card:hover {
+            transform: translateY(-4px);
+        }
+        .gift-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .gift-name {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .gift-price {
+            color: #ff9800;
+            font-weight: bold;
+        }
+        .nft-badge {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-top: 8px;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="glass header">
+            <button class="back-btn" onclick="window.location.href='chats.html'">←</button>
+            <h2>🎁 Подарки</h2>
+            <div class="balance">⭐ <span id="starBalance">0</span></div>
+        </div>
+
+        <div class="gift-grid" id="giftGrid"></div>
+    </div>
+
+    <div class="theme-switch">
+        <button class="theme-btn light" onclick="setTheme('light')"></button>
+        <button class="theme-btn dark" onclick="setTheme('dark')"></button>
+        <button class="theme-btn personal" onclick="setTheme('personal')"></button>
+    </div>
+
+    <script type="module">
+        import RuGram from './main.js'
+        
+        let gifts = []
+        
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme)
+            localStorage.setItem('theme', theme)
+        }
+        
+        async function loadGifts() {
+            const balance = await RuGram.getBalance()
+            document.getElementById('starBalance').innerText = balance
+            
+            gifts = await RuGram.loadGifts()
+            renderGifts()
+        }
+        
+        function renderGifts() {
+            const grid = document.getElementById('giftGrid')
+            grid.innerHTML = gifts.map(gift => `
+                <div class="gift-card glass-card" onclick="buyGift(${gift.id}, ${gift.price_stars}, '${gift.name}')">
+                    <div class="gift-icon">${gift.icon || '🎁'}</div>
+                    <div class="gift-name">${gift.name}</div>
+                    <div class="gift-price">⭐ ${gift.price_stars}</div>
+                    ${gift.gift_type === 'nft' ? '<div class="nft-badge">NFT</div>' : ''}
+                </div>
+            `).join('')
+        }
+        
+        window.buyGift = async (giftId, price, name) => {
+            const user = await RuGram.getCurrentUser()
+            const users = await RuGram.findUsers('')
+            
+            const fakeSelect = prompt(`Кому подарить ${name}?\nВведите username получателя:`)
+            if (!fakeSelect) return
+            
+            try {
+                await RuGram.purchaseGift(giftId, user.id, `Подарок ${name}`)
+                alert(`🎉 Подарок отправлен! Списано ${price} Star`)
+                await loadGifts()
+            } catch (err) {
+                alert(err.message)
+            }
+        }
+        
+        const savedTheme = localStorage.getItem('theme') || 'light'
+        document.body.setAttribute('data-theme', savedTheme)
+        
+        window.setTheme = setTheme
+        window.buyGift = buyGift
+        
+        const loggedIn = await RuGram.init()
+        if (!loggedIn) window.location.href = 'index.html'
+        await loadGifts()
+    </script>
+</body>
+</html>

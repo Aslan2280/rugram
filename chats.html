@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RuGram - Чаты</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .app {
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+        .header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h1 {
+            font-size: 24px;
+        }
+        .nav-icons {
+            display: flex;
+            gap: 16px;
+        }
+        .nav-icons span {
+            font-size: 24px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .nav-icons span:hover {
+            transform: scale(1.1);
+        }
+        .tabs {
+            display: flex;
+            padding: 0 20px;
+            gap: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        .tab {
+            padding: 12px 0;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        .chat-list {
+            padding: 8px 0;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+        .new-chat-btn {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: all 0.2s;
+        }
+        .new-chat-btn:hover {
+            transform: scale(1.05);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            max-width: 400px;
+            width: 90%;
+            padding: 24px;
+            border-radius: 28px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="glass header">
+            <h1>RuGram</h1>
+            <div class="nav-icons">
+                <span onclick="window.location.href='profile.html'">👤</span>
+                <span onclick="window.location.href='gifts.html'">🎁</span>
+                <span onclick="window.location.href='stories.html'">📸</span>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-type="chats">Чаты</div>
+            <div class="tab" data-type="groups">Группы</div>
+            <div class="tab" data-type="channels">Каналы</div>
+        </div>
+
+        <div class="chat-list" id="chatList">
+            <div class="empty-state">Загрузка...</div>
+        </div>
+    </div>
+
+    <button class="new-chat-btn" onclick="showNewChatModal()">+</button>
+
+    <div id="newChatModal" class="modal">
+        <div class="glass modal-content">
+            <h3 style="margin-bottom: 16px;">Новый чат</h3>
+            <input type="text" id="searchUser" class="input" placeholder="Поиск пользователей..." style="margin-bottom: 16px;">
+            <div id="searchResults" style="max-height: 300px; overflow-y: auto;"></div>
+            <button class="btn-secondary" onclick="closeModal()" style="margin-top: 16px; width: 100%;">Отмена</button>
+        </div>
+    </div>
+
+    <div class="theme-switch">
+        <button class="theme-btn light" onclick="setTheme('light')"></button>
+        <button class="theme-btn dark" onclick="setTheme('dark')"></button>
+        <button class="theme-btn personal" onclick="setTheme('personal')"></button>
+    </div>
+
+    <script type="module">
+        import RuGram from './main.js'
+        
+        let currentTab = 'chats'
+        let allChats = []
+        
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme)
+            localStorage.setItem('theme', theme)
+        }
+        
+        async function loadChats() {
+            try {
+                allChats = await RuGram.loadChats()
+                renderChats()
+            } catch (err) {
+                console.error(err)
+                document.getElementById('chatList').innerHTML = '<div class="empty-state">Ошибка загрузки</div>'
+            }
+        }
+        
+        function renderChats() {
+            let filtered = allChats
+            if (currentTab === 'chats') filtered = allChats.filter(c => c.chat_type === 'private')
+            else if (currentTab === 'groups') filtered = allChats.filter(c => c.chat_type === 'group')
+            else filtered = allChats.filter(c => c.chat_type === 'channel')
+            
+            if (filtered.length === 0) {
+                document.getElementById('chatList').innerHTML = '<div class="empty-state">Нет чатов</div>'
+                return
+            }
+            
+            document.getElementById('chatList').innerHTML = filtered.map(chat => `
+                <div class="chat-item glass-card" onclick="openChat(${chat.id}, '${chat.name}', '${chat.chat_type}')">
+                    <div class="avatar">${chat.name?.[0] || '💬'}</div>
+                    <div class="chat-info" style="flex:1">
+                        <div style="font-weight:600">${chat.name || 'Чат'}</div>
+                        <div style="font-size:13px; color:var(--text-secondary)">
+                            ${chat.last_message?.encrypted_content ? '🔒 Новое сообщение' : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('')
+        }
+        
+        window.openChat = (id, name, type) => {
+            RuGram.setCurrentChat({ id, name, type })
+            window.location.href = 'chat.html'
+        }
+        
+        async function showNewChatModal() {
+            const modal = document.getElementById('newChatModal')
+            modal.style.display = 'flex'
+            const searchInput = document.getElementById('searchUser')
+            searchInput.value = ''
+            document.getElementById('searchResults').innerHTML = ''
+            
+            searchInput.oninput = async (e) => {
+                const query = e.target.value
+                if (query.length < 2) return
+                
+                const users = await RuGram.findUsers(query)
+                document.getElementById('searchResults').innerHTML = users.map(user => `
+                    <div class="chat-item" onclick="startChat('${user.id}', '${user.username}')">
+                        <div class="avatar">${user.username[0]}</div>
+                        <div>${user.username}</div>
+                    </div>
+                `).join('')
+            }
+        }
+        
+        window.startChat = async (userId, username) => {
+            const chat = await RuGram.startPrivateChat(userId)
+            closeModal()
+            RuGram.setCurrentChat({ id: chat.id, name: username, type: 'private' })
+            window.location.href = 'chat.html'
+        }
+        
+        function closeModal() {
+            document.getElementById('newChatModal').style.display = 'none'
+        }
+        
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+                tab.classList.add('active')
+                currentTab = tab.dataset.type
+                renderChats()
+            })
+        })
+        
+        const savedTheme = localStorage.getItem('theme') || 'light'
+        document.body.setAttribute('data-theme', savedTheme)
+        
+        window.setTheme = setTheme
+        window.showNewChatModal = showNewChatModal
+        window.closeModal = closeModal
+        window.startChat = startChat
+        
+        const user = await RuGram.init()
+        if (!user) window.location.href = 'index.html'
+        await loadChats()
+    </script>
+</body>
+</html>

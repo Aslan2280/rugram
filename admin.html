@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RuGram - Админ панель</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .admin-card {
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .admin-card h3 {
+            margin-bottom: 16px;
+        }
+        .user-list, .gift-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .user-item, .gift-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .danger-btn {
+            background: #dc2626;
+        }
+        .success-btn {
+            background: #10b981;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="glass header" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; margin-bottom:20px;">
+            <button class="back-btn" onclick="window.location.href='chats.html'" style="background:none; border:none; font-size:24px;">←</button>
+            <h2>⚙️ Админ панель</h2>
+            <div style="width:40px;"></div>
+        </div>
+
+        <div class="glass admin-card">
+            <h3>⭐ Управление балансами</h3>
+            <input type="text" id="userEmail" placeholder="Email пользователя">
+            <input type="number" id="starAmount" placeholder="Количество Star">
+            <div style="display:flex; gap:12px;">
+                <button class="btn success-btn" onclick="addStars()" style="flex:1">➕ Добавить</button>
+                <button class="btn danger-btn" onclick="removeStars()" style="flex:1">➖ Снять</button>
+            </div>
+        </div>
+
+        <div class="glass admin-card">
+            <h3>🎁 Управление подарками</h3>
+            <input type="text" id="giftName" placeholder="Название">
+            <input type="number" id="giftPrice" placeholder="Цена в Star">
+            <select id="giftType">
+                <option value="common">Обычный</option>
+                <option value="nft">NFT</option>
+            </select>
+            <button class="btn" onclick="addGift()" style="width:100%">➕ Добавить подарок</button>
+            <div class="gift-list" id="giftList" style="margin-top:16px;"></div>
+        </div>
+
+        <div class="glass admin-card">
+            <h3>👥 Пользователи</h3>
+            <div class="user-list" id="userList"></div>
+        </div>
+    </div>
+
+    <div class="theme-switch">
+        <button class="theme-btn light" onclick="setTheme('light')"></button>
+        <button class="theme-btn dark" onclick="setTheme('dark')"></button>
+        <button class="theme-btn personal" onclick="setTheme('personal')"></button>
+    </div>
+
+    <script type="module">
+        import RuGram from './main.js'
+        
+        let gifts = []
+        
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme)
+            localStorage.setItem('theme', theme)
+        }
+        
+        async function loadData() {
+            const isAdmin = await RuGram.checkAdmin()
+            if (!isAdmin) {
+                alert('Доступ запрещен')
+                window.location.href = 'chats.html'
+                return
+            }
+            
+            const users = await RuGram.adminGetUsers()
+            document.getElementById('userList').innerHTML = users.map(user => `
+                <div class="user-item">
+                    <div>
+                        <strong>${user.username || user.email}</strong>
+                        <div style="font-size:12px;">⭐ ${user.stars_balance || 0} Star</div>
+                    </div>
+                    <div>
+                        ${!user.is_admin ? `<button class="btn-sm" onclick="makeAdmin('${user.id}')">👑 Сделать админом</button>` : '<span style="color:gold;">👑 Админ</span>'}
+                    </div>
+                </div>
+            `).join('')
+            
+            const allGifts = await RuGram.loadGifts()
+            gifts = allGifts
+            document.getElementById('giftList').innerHTML = gifts.map(gift => `
+                <div class="gift-item">
+                    <span>${gift.icon || '🎁'} ${gift.name} (${gift.gift_type}) - ⭐${gift.price_stars}</span>
+                    <div>
+                        <button class="btn-sm" onclick="deleteGift(${gift.id})">🗑️</button>
+                    </div>
+                </div>
+            `).join('')
+        }
+        
+        window.addStars = async () => {
+            const email = document.getElementById('userEmail').value
+            const amount = parseInt(document.getElementById('starAmount').value)
+            if (!email || !amount) return alert('Заполните поля')
+            
+            const users = await RuGram.adminGetUsers()
+            const user = users.find(u => u.email === email)
+            if (!user) return alert('Пользователь не найден')
+            
+            await RuGram.adminModifyStars(user.id, amount, 'Администратор')
+            alert('Готово')
+            await loadData()
+        }
+        
+        window.removeStars = async () => {
+            const email = document.getElementById('userEmail').value
+            const amount = parseInt(document.getElementById('starAmount').value)
+            if (!email || !amount) return alert('Заполните поля')
+            
+            const users = await RuGram.adminGetUsers()
+            const user = users.find(u => u.email === email)
+            if (!user) return alert('Пользователь не найден')
+            
+            await RuGram.adminModifyStars(user.id, -amount, 'Администратор')
+            alert('Готово')
+            await loadData()
+        }
+        
+        window.addGift = async () => {
+            const name = document.getElementById('giftName').value
+            const price = parseInt(document.getElementById('giftPrice').value)
+            const type = document.getElementById('giftType').value
+            
+            if (!name || !price) return alert('Заполните поля')
+            
+            await RuGram.adminCreateGift({ name, price_stars: price, gift_type: type, icon: '🎁', is_active: true })
+            alert('Подарок добавлен')
+            await loadData()
+        }
+        
+        window.deleteGift = async (id) => {
+            if (confirm('Удалить подарок?')) {
+                await RuGram.adminDeleteGift(id)
+                await loadData()
+            }
+        }
+        
+        window.makeAdmin = async (userId) => {
+            await RuGram.adminModifyStars(userId, 0, 'Назначение админом')
+            alert('Пользователь назначен админом')
+            await loadData()
+        }
+        
+        const savedTheme = localStorage.getItem('theme') || 'light'
+        document.body.setAttribute('data-theme', savedTheme)
+        
+        window.setTheme = setTheme
+        
+        const user = await RuGram.init()
+        if (!user) window.location.href = 'index.html'
+        await loadData()
+    </script>
+</body>
+</html>
