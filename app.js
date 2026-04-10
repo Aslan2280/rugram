@@ -1,12 +1,32 @@
 // app.js
 import { 
-    supabase, signUp, signIn, signOut, getCurrentUser, getProfile,
-    getUserChats, createPrivateChat, createGroup, createChannel,
-    getMessages, sendMessage, subscribeToMessages,
-    getGifts, sendGift, getMyGifts,
-    uploadStory, getActiveStories,
-    isAdmin, getAllUsers, modifyUserStars, createGift, updateGift, deleteGift,
-    getStarBalance, searchUsers, updateProfile
+    supabase,
+    getCurrentUser,
+    signIn, 
+    signUp, 
+    signOut,
+    getProfile,
+    updateProfile,
+    getUserChats,
+    createPrivateChat,
+    createGroup,
+    createChannel,
+    getMessages,
+    sendMessage,
+    subscribeToMessages,
+    getGifts,
+    sendGift,
+    getMyGifts,
+    uploadStory,
+    getActiveStories,
+    isAdmin,
+    getAllUsers,
+    modifyUserStars,
+    createGift,
+    updateGift,
+    deleteGift,
+    getStarBalance,
+    searchUsers
 } from './supabase.js'
 import { encrypt, decrypt } from './encryption.js'
 
@@ -14,7 +34,6 @@ let currentUser = null
 let currentChat = null
 let messageSubscription = null
 
-// Инициализация
 export async function init() {
     currentUser = await getCurrentUser()
     if (currentUser) {
@@ -24,7 +43,6 @@ export async function init() {
     return currentUser
 }
 
-// Авторизация
 export async function login(email, password) {
     const data = await signIn(email, password)
     await init()
@@ -45,7 +63,10 @@ export async function logout() {
     currentChat = null
 }
 
-// Чаты
+export function getCurrentUserData() {
+    return currentUser
+}
+
 export async function loadChats() {
     if (!currentUser) return []
     return await getUserChats()
@@ -75,7 +96,6 @@ export async function loadMessages(chatId) {
             }
         }
     }
-    
     return messages
 }
 
@@ -104,11 +124,9 @@ export function subscribeChat(chatId, onNewMessage) {
         }
         onNewMessage(msg)
     })
-    
     return messageSubscription
 }
 
-// Подарки
 export async function loadGifts() {
     return await getGifts()
 }
@@ -121,7 +139,6 @@ export async function loadReceivedGifts() {
     return await getMyGifts()
 }
 
-// Истории
 export async function publishStory(file, caption) {
     return await uploadStory(file, caption)
 }
@@ -130,12 +147,10 @@ export async function loadStories() {
     return await getActiveStories()
 }
 
-// Баланс
 export async function getBalance() {
     return await getStarBalance()
 }
 
-// Админка
 export async function checkAdmin() {
     return await isAdmin()
 }
@@ -160,17 +175,14 @@ export async function adminDeleteGift(id) {
     return await deleteGift(id)
 }
 
-// Поиск
 export async function findUsers(query) {
     return await searchUsers(query)
 }
 
-// Профиль
 export async function saveProfile(updates) {
     return await updateProfile(updates)
 }
 
-// Получить текущего пользователя
 export function getCurrentChat() {
     return currentChat
 }
