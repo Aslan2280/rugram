@@ -47,6 +47,7 @@
         .register-link a {
             color: var(--accent);
             text-decoration: none;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -77,23 +78,13 @@
     </div>
 
     <div class="theme-switch">
-        <button class="theme-btn light" onclick="setTheme('light')"></button>
-        <button class="theme-btn dark" onclick="setTheme('dark')"></button>
-        <button class="theme-btn personal" onclick="setTheme('personal')"></button>
+        <button class="theme-btn light" onclick="window.setTheme('light')"></button>
+        <button class="theme-btn dark" onclick="window.setTheme('dark')"></button>
+        <button class="theme-btn personal" onclick="window.setTheme('personal')"></button>
     </div>
 
     <script type="module">
         import RuGram from './main.js'
-        
-        function setTheme(theme) {
-            document.body.setAttribute('data-theme', theme)
-            localStorage.setItem('theme', theme)
-            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'))
-            event.target.classList.add('active')
-        }
-        
-        const savedTheme = localStorage.getItem('theme') || 'light'
-        document.body.setAttribute('data-theme', savedTheme)
         
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault()
@@ -105,10 +96,9 @@
                 window.location.href = 'chats.html'
             } catch (err) {
                 document.getElementById('errorMsg').style.display = 'block'
+                console.error(err)
             }
         })
-        
-        window.setTheme = setTheme
     </script>
 </body>
 </html>
